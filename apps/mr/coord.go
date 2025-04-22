@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"sync/atomic"
 	"time"
@@ -365,7 +366,11 @@ func (c *Coord) makeReduceBins() error {
 
 	db.DPrintf(db.MR_COORD, "Reducers job state %v", rs)
 
+	// get all reducers (including those that succeeded in previous rounds) in sorted order to ensure
+	// any restarted reducers are given the exact same files as before
 	rns := append(rnsDone, rnsTodo...)
+	sort.Strings(rns)
+
 	for _, n := range rns {
 		c.reduceBinIn[n] = make(Bin, c.nmaptask)
 	}
