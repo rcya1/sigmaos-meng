@@ -260,14 +260,23 @@ func (c *Coord) waitForTask(ft *fttask.FtTasks, start time.Time, ch chan Tresult
 
 func (c *Coord) runTasks(ft *fttask.FtTasks, ch chan Tresult, taskNames []string, f NewProc) {
 	db.DPrintf(db.MR_COORD, "runTasks %v", taskNames)
-	for _, tn := range taskNames {
+	// create all proc objects first so we can spawn them all in
+	// quick succession to try to balance load across machines
+	procs := make([]*proc.Proc, len(taskNames))
+	for i, tn := range taskNames {
 		proc, err := f(tn)
 		if err != nil {
 			db.DFatalf("Err spawn task: %v", err)
 		}
+
+		procs[i] = proc
+	}
+
+	for i, tn := range taskNames {
+		proc := procs[i]
 		db.DPrintf(db.MR_COORD, "prep to spawn proc %v %v", proc.GetPid(), proc.Args)
 		start := time.Now()
-		err = c.Spawn(proc)
+		err := c.Spawn(proc)
 		if err != nil {
 			db.DFatalf("Err spawn task: %v", err)
 		}
