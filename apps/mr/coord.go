@@ -239,7 +239,7 @@ func (c *Coord) waitForTask(ft *fttask.FtTasks, start time.Time, ch chan Tresult
 		if err := ft.MarkDoneOutput(t, r.OutBin); err != nil {
 			db.DFatalf("MarkDone %v done err %v", t, err)
 		}
-		db.DPrintf(db.MR_COORD, "MarkDone latency: %v %v", time.Since(start), r)
+		db.DPrintf(db.MR_COORD, "MarkDone latency: lat %v inner %v task %s", time.Since(start), r.MsInner, r.Task)
 		r.MsOuter = ms
 		ch <- Tresult{t, true, ms, status.Msg(), r}
 	} else { // task failed; make it runnable again
@@ -259,7 +259,7 @@ func (c *Coord) waitForTask(ft *fttask.FtTasks, start time.Time, ch chan Tresult
 }
 
 func (c *Coord) runTasks(ft *fttask.FtTasks, ch chan Tresult, taskNames []string, f NewProc) {
-	db.DPrintf(db.MR_COORD, "runTasks %v", taskNames)
+	db.DPrintf(db.MR_COORD, "runTasks %v", len(taskNames))
 	// create all proc objects first so we can spawn them all in
 	// quick succession to try to balance load across machines
 	procs := make([]*proc.Proc, len(taskNames))
@@ -274,7 +274,7 @@ func (c *Coord) runTasks(ft *fttask.FtTasks, ch chan Tresult, taskNames []string
 
 	for i, tn := range taskNames {
 		proc := procs[i]
-		db.DPrintf(db.MR_COORD, "prep to spawn proc %v %v", proc.GetPid(), proc.Args)
+		db.DPrintf(db.MR_COORD, "prep to spawn proc %v", proc.GetPid())
 		start := time.Now()
 		err := c.Spawn(proc)
 		if err != nil {
@@ -298,7 +298,7 @@ func (c *Coord) startTasks(ft *fttask.FtTasks, ch chan Tresult, f NewProc) int {
 	if err != nil {
 		db.DFatalf("startTasks err %v\n", err)
 	}
-	db.DPrintf(db.MR_COORD, "startTasks %v time: %v", tns, time.Since(start))
+	db.DPrintf(db.MR_COORD, "startTasks %v time: %v", len(tns), time.Since(start))
 	c.runTasks(ft, ch, tns, f)
 	return len(tns)
 }
@@ -384,7 +384,7 @@ func (c *Coord) makeReduceBins() error {
 		c.reduceBinIn[n] = make(Bin, c.nmaptask)
 	}
 
-	db.DPrintf(db.MR_COORD, "makeReduceBins: tasks done %v todo %v %v", mns, rns, c.reduceBinIn)
+	// db.DPrintf(db.MR_COORD, "makeReduceBins: tasks done %v todo %v %v", mns, rns, c.reduceBinIn)
 
 	for j, m := range mns {
 		var obin Bin
@@ -395,7 +395,7 @@ func (c *Coord) makeReduceBins() error {
 			c.reduceBinIn[rns[i]][j] = s
 		}
 	}
-	db.DPrintf(db.MR_COORD, "makeReduceBins: reduceBinIn %v", c.reduceBinIn)
+	// db.DPrintf(db.MR_COORD, "makeReduceBins: reduceBinIn %v", c.reduceBinIn)
 	return nil
 }
 

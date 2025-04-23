@@ -219,7 +219,7 @@ func (r *Reducer) emit(key []byte, value string) error {
 }
 
 func (r *Reducer) DoReduce() *proc.Status {
-	db.DPrintf(db.ALWAYS, "DoReduce in %v out %v nmap %v\n", r.input, r.outlink, r.nmaptask)
+	db.DPrintf(db.ALWAYS, "DoReduce in %v out %v nmap %v\n", len(r.input), r.outlink, r.nmaptask)
 	rtot := readResult{
 		kvm:        kvmap.NewKVMap(chunkreader.MINCAP, chunkreader.MAXCAP),
 		mapsFailed: []string{},
