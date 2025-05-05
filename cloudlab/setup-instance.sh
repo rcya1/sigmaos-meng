@@ -114,7 +114,7 @@ if [ -d "sigmaos" ]
 then
   ssh-agent bash -c 'ssh-add ~/.ssh/aws-sigmaos; (cd sigmaos; git pull;)'
 else
-  git clone https://github.com/mit-pdos/sigmaos.git
+  git clone https://github.com/rcya1/sigmaos-meng.git sigmaos
   cd sigmaos
   go mod download
   cd ..
