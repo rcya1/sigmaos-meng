@@ -71,6 +71,7 @@ type Coord struct {
 	memPerTask      proc.Tmem
 	stat            Stat
 	perf            *perf.Perf
+	skipReduce      bool
 }
 
 type Stat struct {
@@ -90,7 +91,7 @@ func (s *Stat) String() string {
 type NewProc func(fttask_clnt.Task[[]byte]) (*proc.Proc, error)
 
 func NewCoord(args []string) (*Coord, error) {
-	if len(args) != 12 {
+	if len(args) != 13 {
 		return nil, errors.New("NewCoord: wrong number of arguments")
 	}
 	c := &Coord{}
@@ -154,6 +155,8 @@ func NewCoord(args []string) (*Coord, error) {
 
 	c.mftid = task.FtTaskSrvId(args[10])
 	c.rftid = task.FtTaskSrvId(args[11])
+
+	c.skipReduce = args[12] != "0"
 
 	return c, nil
 }
@@ -564,11 +567,13 @@ func (c *Coord) Work() {
 			ms := time.Since(start).Milliseconds()
 			db.DPrintf(db.ALWAYS, "map phase took %vms\n", ms)
 
-			// err := c.makeReduceBins()
-			// if err != nil {
-			// 	db.DFatalf("ReduceBins err %v", err)
-			// }
-			// c.Round("reduce")
+			err := c.makeReduceBins()
+			if err != nil {
+				db.DFatalf("ReduceBins err %v", err)
+			}
+			if !c.skipReduce {
+				c.Round("reduce")
+			}
 		}
 		if !c.doRestart() {
 			break
@@ -576,17 +581,24 @@ func (c *Coord) Work() {
 	}
 
 	// double check we are done
-	// n, err := c.mftclnt.GetNTasks(fttask_clnt.DONE)
-	// if err != nil {
-	// 	db.DFatalf("NtaskDone mappers err %v\n", err)
-	// }
-	// m, err := c.rftclnt.GetNTasks(fttask_clnt.DONE)
-	// if err != nil {
-	// 	db.DFatalf("NtaskDone reducers err %v\n", err)
-	// }
-	// if int(n+m) < c.nmaptask+c.nreducetask {
-	// 	db.DFatalf("job isn't done %v+%v != %v+%v", n, m, c.nmaptask, c.nreducetask)
-	// }
+	n, err := c.mftclnt.GetNTasks(fttask_clnt.DONE)
+	if err != nil {
+		db.DFatalf("NtaskDone mappers err %v\n", err)
+	}
+	m, err := c.rftclnt.GetNTasks(fttask_clnt.DONE)
+	if err != nil {
+		db.DFatalf("NtaskDone reducers err %v\n", err)
+	}
+
+	var target int
+	if c.skipReduce {
+		target = c.nmaptask
+	} else {
+		target = c.nmaptask + c.nreducetask
+	}
+	if int(n+m) < target {
+		db.DFatalf("job isn't done %v+%v != %v+%v", n, m, c.nmaptask, c.nreducetask)
+	}
 
 	db.DPrintf(db.ALWAYS, "job done stat %v", &c.stat)
 
