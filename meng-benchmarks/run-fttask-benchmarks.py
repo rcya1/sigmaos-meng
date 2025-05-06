@@ -66,8 +66,8 @@ for entry in os.listdir(base_dir):
 
 for i in range(1):
     for branch in branches:
-        # run(["git", "checkout", branch])
-        # run(["./build.sh", "--parallel", "--target", "remote", "--push", "rychang"])
+        run(["git", "checkout", branch])
+        run(["./build.sh", "--parallel", "--target", "remote", "--push", "rychang"])
         for bench, apps in benchmarks.items():
             for app in apps:
                 if bench == "mapper-only" and "300" in app:
@@ -92,5 +92,5 @@ for i in range(1):
                     with open("./cloudlab/start-sigmaos.sh", "w") as f:
                         f.writelines(lines)
 
-                run_benchmark(branch, i, os.path.join(bench, app), bench)
+                run_benchmark(branch, i, app, bench)
 
