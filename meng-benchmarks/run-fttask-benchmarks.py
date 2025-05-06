@@ -49,7 +49,7 @@ branches = ["fttask-server", "fttask-named"]
 base_dir = "./apps/mr/job-descriptions"
 benchmark_names = [
     "e2e",
-    "e2e-reducer",
+    "e2e-reducer"
     "10x-bin",
     "mapper-only"
 ]
@@ -57,7 +57,7 @@ benchmarks = {}
 
 for entry in os.listdir(base_dir):
     for bench in benchmark_names:
-        if not entry.startswith(bench):
+        if not entry.startswith(bench + "-mr"):
             continue
 
         if bench not in benchmarks:
