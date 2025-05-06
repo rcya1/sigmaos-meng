@@ -105,7 +105,7 @@ type Job struct {
 	Output        string  `yaml:"output"`
 	Linesz        int     `yaml:"linesz"`
 	Wordsz        int     `yaml:"wordsz"`
-	Local         string  `yaml:"input"`
+	Local         string  `yaml:"local"`
 	InputMult     int 	  `yaml:"input-mult"`
 	SkipReduce    bool    `yaml:"skip-reduce"`
 }
