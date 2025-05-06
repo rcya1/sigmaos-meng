@@ -218,7 +218,7 @@ func TestSplits(t *testing.T) {
 	}
 	job, err1 = mr.ReadJobConfig(filepath.Join("job-descriptions", app))
 	assert.Nil(t, err1, "Error ReadJobConfig: %v", err1)
-	bins, err := mr.NewBins(ts.FsLib, job.Input, sp.Tlength(job.Binsz), SPLITSZ)
+	bins, err := mr.NewBins(ts.FsLib, job.Input, sp.Tlength(job.Binsz), SPLITSZ, 1, 0, 1)
 	assert.Nil(t, err)
 	sum := sp.Tlength(0)
 	for _, b := range bins {

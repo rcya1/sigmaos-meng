@@ -7,6 +7,7 @@ import (
 	"github.com/dustin/go-humanize"
 	"github.com/mitchellh/mapstructure"
 
+	"math/rand"
 	"sigmaos/apps/mr/mr"
 	db "sigmaos/debug"
 	"sigmaos/sigmaclnt/fslib"
@@ -61,7 +62,7 @@ func NewResult(data interface{}) (*Result, error) {
 
 // Each bin has a slice of splits.  Assign splits of files to a bin
 // until the bin is full
-func NewBins(fsl *fslib.FsLib, dir string, maxbinsz, splitsz sp.Tlength) ([]Bin, error) {
+func NewBins(fsl *fslib.FsLib, dir string, maxbinsz, splitsz, splitMult sp.Tlength, splitProb float64, inputMult int) ([]Bin, error) {
 	bins := make([]Bin, 0)
 	binsz := uint64(0)
 	bin := Bin{}
@@ -73,44 +74,44 @@ func NewBins(fsl *fslib.FsLib, dir string, maxbinsz, splitsz sp.Tlength) ([]Bin,
 
 	currMaxBinSz := maxbinsz
 	genNewBinSz := func() {
-		// double := rand.Int64(10) == 0
-		// if double {
-		// 	currMaxBinSz = maxbinsz * 10
-		// } else {
-		// 	currMaxBinSz = maxbinsz
-		// }
-	}
-	genNewBinSz()
-	for x := 0; x < 150; x++ {
-	for _, st := range sts {
-		for i := uint64(0); ; {
-			n := uint64(splitsz)
-			if i+n > st.LengthUint64() {
-				n = st.LengthUint64() - i
-			}
-			if n == 0 {
-				break
-			}
-			split := mr.Split {
-				File: dir + "/" + st.Name,
-				Offset: sp.Toffset(i),
-				Length: sp.Tlength(n),
-			}
-			bin = append(bin, split)
-			binsz += n
-
-			if binsz+uint64(splitsz) > uint64(currMaxBinSz) { // bin full?
-				bins = append(bins, bin)
-				bin = Bin{}
-				binsz = uint64(0)
-				genNewBinSz()
-			}
-			if n < uint64(splitsz) { // next file
-				break
-			}
-			i += n
+		shouldMult := rand.Float64() < splitProb
+		if shouldMult {
+			currMaxBinSz = maxbinsz * splitMult
+		} else {
+			currMaxBinSz = maxbinsz
 		}
 	}
+	genNewBinSz()
+	for x := 0; x < inputMult; x++ {
+		for _, st := range sts {
+			for i := uint64(0); ; {
+				n := uint64(splitsz)
+				if i+n > st.LengthUint64() {
+					n = st.LengthUint64() - i
+				}
+				if n == 0 {
+					break
+				}
+				split := mr.Split {
+					File: dir + "/" + st.Name,
+					Offset: sp.Toffset(i),
+					Length: sp.Tlength(n),
+				}
+				bin = append(bin, split)
+				binsz += n
+
+				if binsz+uint64(splitsz) > uint64(currMaxBinSz) { // bin full?
+					bins = append(bins, bin)
+					bin = Bin{}
+					binsz = uint64(0)
+					genNewBinSz()
+				}
+				if n < uint64(splitsz) { // next file
+					break
+				}
+				i += n
+			}
+		}
 	}
 	if binsz > 0 {
 		bins = append(bins, bin)

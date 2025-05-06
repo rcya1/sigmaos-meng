@@ -92,15 +92,19 @@ func mshardfile(dir string, r int) string {
 }
 
 type Job struct {
-	App          string `yalm:"app"`
-	Nreduce      int    `yalm:"nreduce"`
-	Binsz        int    `yalm:"binsz"`
-	Input        string `yalm:"input"`
-	Intermediate string `yalm:"intermediate"`
-	Output       string `yalm:"output"`
-	Linesz       int    `yalm:"linesz"`
-	Wordsz       int    `yalm:"wordsz"`
-	Local        string `yalm:"input"`
+	App           string  `yaml:"app"`
+	Nreduce       int     `yaml:"nreduce"`
+	Binsz         int     `yaml:"binsz"`
+	BinszMult     int     `yaml:"binsz-mult"`
+	BinszProb     float64 `yaml:"binsz-prob"`
+	Input         string  `yaml:"input"`
+	Intermediate  string  `yaml:"intermediate"`
+	Output        string  `yaml:"output"`
+	Linesz        int     `yaml:"linesz"`
+	Wordsz        int     `yaml:"wordsz"`
+	Local         string  `yaml:"input"`
+	InputMult     int 	  `yaml:"input-mult"`
+	SkipReduce    bool    `yaml:"skip-reduce"`
 }
 
 // Wait until the job is done
@@ -224,7 +228,7 @@ func PrepareJob(fsl *fslib.FsLib, ts *Tasks, jobRoot, jobName string, job *Job) 
 
 	splitsz := sp.Tlength(SPLITSZ)
 
-	bins, err := NewBins(fsl, job.Input, sp.Tlength(job.Binsz), splitsz)
+	bins, err := NewBins(fsl, job.Input, sp.Tlength(job.Binsz), splitsz, sp.Tlength(job.BinszMult), job.BinszProb, job.InputMult)
 	if err != nil || len(bins) == 0 {
 		return len(bins), err
 	}
@@ -260,7 +264,18 @@ func CreateMapperIntOutDirUx(fsl *fslib.FsLib, job, intOutput string) error {
 }
 
 func StartMRJob(sc *sigmaclnt.SigmaClnt, jobRoot, jobName string, job *Job, nmap int, memPerTask proc.Tmem, maliciousMapper int) *procgroupmgr.ProcGroupMgr {
-	cfg := procgroupmgr.NewProcGroupConfig(NCOORD, "mr-coord", []string{jobRoot, strconv.Itoa(nmap), strconv.Itoa(job.Nreduce), "mr-m-" + job.App, "mr-r-" + job.App, strconv.Itoa(job.Linesz), strconv.Itoa(job.Wordsz), strconv.Itoa(int(memPerTask)), strconv.Itoa(maliciousMapper)}, 1000, jobName)
+	cfg := procgroupmgr.NewProcGroupConfig(NCOORD, "mr-coord", []string{
+		jobRoot,
+		strconv.Itoa(nmap),
+		strconv.Itoa(job.Nreduce),
+		"mr-m-" + job.App,
+		"mr-r-" + job.App,
+		strconv.Itoa(job.Linesz),
+		strconv.Itoa(job.Wordsz),
+		strconv.Itoa(int(memPerTask)),
+		strconv.Itoa(maliciousMapper),
+		map[bool]string{false: "0", true: "1"}[job.SkipReduce],
+	}, 1000, jobName)
 	return cfg.StartGrpMgr(sc)
 }
 
