@@ -47,22 +47,27 @@ subprocess.run(["sudo", "pkill", "-f", "sigmaos"], check=False)
 
 branches = ["fttask-server", "old-fttask"]
 base_dir = "./apps/mr/job-descriptions"
+benchmark_names = [
+    "e2e",
+    "e2e-reducer",
+    "10x-bin",
+    "mapper-only"
+]
 benchmarks = {}
 
 for entry in os.listdir(base_dir):
-    full_path = os.path.join(base_dir, entry)
-    if os.path.isdir(full_path):
-        apps = [
-            f
-            for f in os.listdir(full_path)
-            if os.path.isfile(os.path.join(full_path, f))
-        ]
-        benchmarks[entry] = apps
+    for bench in benchmark_names:
+        if not entry.startswith(bench):
+            continue
+
+        if bench not in benchmarks:
+            benchmarks[bench] = []
+        benchmarks[bench].append(entry)
 
 for i in range(1):
     for branch in branches:
-        run(["git", "checkout", branch])
-        run(["./build.sh", "--parallel", "--target", "remote", "--push", "rychang"])
+        # run(["git", "checkout", branch])
+        # run(["./build.sh", "--parallel", "--target", "remote", "--push", "rychang"])
         for bench, apps in benchmarks.items():
             for app in apps:
                 if bench == "mapper-only" and "300" in app:

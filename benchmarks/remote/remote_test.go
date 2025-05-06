@@ -275,7 +275,7 @@ func TestMR(t *testing.T) {
 	var (
 		mrApps []*MRExperimentConfig = []*MRExperimentConfig{
 			{
-				"e2e/mr-wiki20G-wc-ux-64.yml",
+				"e2e/e2e-reducer-mr-wiki20G-wc-ux-135.yml",
 				10, 4, 7000,
 			},
 		}
