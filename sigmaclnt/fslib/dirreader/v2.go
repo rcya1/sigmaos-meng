@@ -46,12 +46,20 @@ func (wr watchReader) Read(p []byte) (int, error) {
 func NewDirReaderV2(fslib *fslib.FsLib, pn string) (*DirReaderV2, error) {
 	db.DPrintf(db.WATCH, "NewDirReaderV2: Creating v2 watch on %s", pn)
 
-	fd, err := fslib.Open(pn, sp.OREAD)
-	if err != nil {
-		return nil, err
-	}
-	watchFd, err := fslib.DirWatchV2(fd)
-	if err != nil {
+	var watchFd int
+	for {
+		fd, err := fslib.Open(pn, sp.OREAD)
+		if err != nil {
+			return nil, err
+		}
+		watchFd, err = fslib.DirWatchV2(fd)
+		if err == nil {
+			break
+		}
+		if serr.IsErrCode(err, serr.TErrVersion) {
+			continue
+		}
+
 		return nil, err
 	}
 
