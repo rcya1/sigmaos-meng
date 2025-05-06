@@ -39,6 +39,9 @@ retry_until_success() {
   return 1
 }
 
+./stop.sh
+./build.sh --parallel
+
 for DIRREADER_VERSION in "${DIRREADER_VERSIONS[@]}"; do
   for STARTING_FILES in "${NUM_STARTING_FILES[@]}"; do
     for WORKERS in "${NUM_WORKERS[@]}"; do
