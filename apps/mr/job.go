@@ -267,7 +267,7 @@ func CreateMapperIntOutDirUx(fsl *fslib.FsLib, job, intOutput string) error {
 	return nil
 }
 
-func StartMRJob(sc *sigmaclnt.SigmaClnt, jobRoot, jobName string, job *Job, nmap int, memPerTask proc.Tmem, maliciousMapper int, mftid task.FtTaskSrvId, rftid task.FtTaskSrvId, skipReduce bool) *procgroupmgr.ProcGroupMgr {
+func StartMRJob(sc *sigmaclnt.SigmaClnt, jobRoot, jobName string, job *Job, nmap int, memPerTask proc.Tmem, maliciousMapper int, mftid task.FtTaskSrvId, rftid task.FtTaskSrvId) *procgroupmgr.ProcGroupMgr {
 	cfg := procgroupmgr.NewProcGroupConfig(NCOORD, "mr-coord",
 		[]string{
 			jobRoot,
@@ -281,7 +281,7 @@ func StartMRJob(sc *sigmaclnt.SigmaClnt, jobRoot, jobName string, job *Job, nmap
 			strconv.Itoa(maliciousMapper),
 			string(mftid),
 			string(rftid),
-			map[bool]string{true: "1", false: "0"}[skipReduce],
+			map[bool]string{true: "1", false: "0"}[job.SkipReduce],
 		}, 1000, jobName)
 	return cfg.StartGrpMgr(sc)
 }

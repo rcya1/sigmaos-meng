@@ -507,7 +507,7 @@ func runN(t *testing.T, em *crash.TeventMap, srvs map[string]crash.Tselector, ma
 	assert.Nil(ts.T, err, "Err prepare job %v: %v", job, err)
 	assert.NotEqual(ts.T, 0, nmap)
 
-	cm := mr.StartMRJob(sc, ts.jobRoot, ts.job, job, nmap, MEM_REQ, maliciousMapper, ts.tasks.Mftsrv.Id, ts.tasks.Rftsrv.Id, false)
+	cm := mr.StartMRJob(sc, ts.jobRoot, ts.job, job, nmap, MEM_REQ, maliciousMapper, ts.tasks.Mftsrv.Id, ts.tasks.Rftsrv.Id)
 
 	var wg sync.WaitGroup
 	for k, v := range srvs {
