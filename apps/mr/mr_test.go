@@ -219,7 +219,7 @@ func TestSplits(t *testing.T) {
 	}
 	job, err1 = mr.ReadJobConfig(filepath.Join("job-descriptions", app))
 	assert.Nil(t, err1, "Error ReadJobConfig: %v", err1)
-	bins, err := mr.NewBins(ts.FsLib, job.Input, sp.Tlength(job.Binsz), SPLITSZ)
+	bins, err := mr.NewBins(ts.FsLib, job.Input, sp.Tlength(job.Binsz), SPLITSZ, 1, 0, 1)
 	assert.Nil(t, err)
 	sum := sp.Tlength(0)
 	for _, b := range bins {
@@ -507,7 +507,7 @@ func runN(t *testing.T, em *crash.TeventMap, srvs map[string]crash.Tselector, ma
 	assert.Nil(ts.T, err, "Err prepare job %v: %v", job, err)
 	assert.NotEqual(ts.T, 0, nmap)
 
-	cm := mr.StartMRJob(sc, ts.jobRoot, ts.job, job, nmap, MEM_REQ, maliciousMapper, ts.tasks.Mftsrv.Id, ts.tasks.Rftsrv.Id)
+	cm := mr.StartMRJob(sc, ts.jobRoot, ts.job, job, nmap, MEM_REQ, maliciousMapper, ts.tasks.Mftsrv.Id, ts.tasks.Rftsrv.Id, false)
 
 	var wg sync.WaitGroup
 	for k, v := range srvs {
