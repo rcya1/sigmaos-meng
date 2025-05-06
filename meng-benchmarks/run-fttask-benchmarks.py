@@ -45,7 +45,7 @@ def run_benchmark(branch, iteration, app, name):
 
 subprocess.run(["sudo", "pkill", "-f", "sigmaos"], check=False)
 
-branches = ["fttask-server", "old-fttask"]
+branches = ["fttask-server", "fttask-named"]
 base_dir = "./apps/mr/job-descriptions"
 benchmark_names = [
     "e2e",
@@ -74,8 +74,10 @@ for i in range(1):
                     lines_copy = []
                     with open("./cloudlab/start-sigmaos.sh", "r") as f:
                         lines = f.readlines()
-                    lines[257] = "# " + lines[257]
-                    lines[258] = "# " + lines[258]
+
+                    if "20G" in lines[257]:
+                        lines[257] = "\n"
+                        lines[258] = "\n"
 
                     with open("./cloudlab/start-sigmaos.sh", "w") as f:
                         f.writelines(lines)
@@ -84,10 +86,9 @@ for i in range(1):
                     with open("./cloudlab/start-sigmaos.sh", "r") as f:
                         lines = f.readlines()
                         lines_copy = [line for line in lines]
-                    if lines[257].startswith("# "):
-                        lines[257] = lines[257][2:]
-                    if lines[258].startswith("# "):
-                        lines[258] = lines[258][2:]
+
+                    lines[257] = "    docker exec ${kernelid} sh -c 'mkdir -p /home/sigmaos/wiki-20G'\n"
+                    lines[258] = "    docker cp ~/wiki-20G/enwiki ${kernelid}:/home/sigmaos/wiki-20G/enwiki\n"
 
                     with open("./cloudlab/start-sigmaos.sh", "w") as f:
                         f.writelines(lines)
