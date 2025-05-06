@@ -29,7 +29,7 @@ func NewFtTaskSrvMgr(sc *sigmaclnt.SigmaClnt, id string, em *crash.TeventMap, ev
 		return nil, err
 	}
 
-	err = sc.MkDir(filepath.Join(sp.FTTASK, id), 0777)
+	err = sc.MkDirPath(sp.FTTASK, id, 0777)
 	if err != nil && !serr.IsErrorExists(err) {
 		return nil, err
 	}
