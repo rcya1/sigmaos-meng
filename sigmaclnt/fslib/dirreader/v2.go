@@ -9,6 +9,7 @@ import (
 	"slices"
 	"strings"
 	"sync"
+	"time"
 
 	db "sigmaos/debug"
 	"sigmaos/serr"
@@ -96,6 +97,9 @@ func NewDirReaderV2(fslib *fslib.FsLib, pn string) (*DirReaderV2, error) {
 	if db.WillBePrinted(db.WATCH) {
 		db.DPrintf(db.WATCH, "NewDirReaderV2: Initial dir contents %v", dr.ents)
 	}
+
+	// just for testing on this branch; give the server a bit of time to cool off and not let the opening of the folder affect the watch delay
+	time.Sleep(500 * time.Millisecond)
 
 	return dr, nil
 }
