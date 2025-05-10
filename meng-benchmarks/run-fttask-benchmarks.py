@@ -49,7 +49,7 @@ branches = ["fttask-server", "fttask-named"]
 base_dir = "./apps/mr/job-descriptions"
 benchmark_names = [
     "e2e",
-    "e2e-reducer"
+    "e2e-reducer",
     "10x-bin",
     "mapper-only"
 ]
@@ -64,7 +64,9 @@ for entry in os.listdir(base_dir):
             benchmarks[bench] = []
         benchmarks[bench].append(entry)
 
-for i in range(1):
+print(benchmarks)
+
+for i in range(10):
     for branch in branches:
         run(["git", "checkout", branch])
         run(["./build.sh", "--parallel", "--target", "remote", "--push", "rychang"])

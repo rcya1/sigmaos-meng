@@ -11,7 +11,7 @@ RED = "\033[91m"    # Red text
 RESET = "\033[0m"   # Reset to default color
 
 ROOT = "./benchmarks/results"
-VERSIONS = ["fttask-server", "old-fttask"]
+VERSIONS = ["fttask-server", "fttask-named"]
 STATS = ["mean", "min", "max", "median", "stdev"]
 
 # Match a line like "Mean: 1m56.476123771s" or "Mean: 2m5.337531432s"
@@ -41,9 +41,9 @@ results = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
 
 for dirname in os.listdir(ROOT):
     for version in VERSIONS:
-        if dirname.startswith("reducer-" + version):
+        # if dirname.startswith("e2e-" + version):
         # if dirname.startswith("10x-bin-" + version):
-        # if dirname.startswith("mapper-only-" + version):
+        if dirname.startswith("mapper-only-" + version):
         # if dirname.startswith(version + "-1.6-benchmark"):
         # if dirname.startswith("60G-mapper-only-" + version):
             print(f"Processing {dirname} for {version}")

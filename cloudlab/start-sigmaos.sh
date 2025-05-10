@@ -255,8 +255,8 @@ for index in "${!KERNELIDS[@]}"; do
     ssh -i $DIR/keys/cloudlab-sigmaos $LOGIN@$vm <<ENDSSH
     docker exec ${kernelid} sh -c 'mkdir -p /home/sigmaos/wiki-2G'
     docker cp ~/wiki-2G/enwiki ${kernelid}:/home/sigmaos/wiki-2G/enwiki
-
-
+    docker exec ${kernelid} sh -c 'mkdir -p /home/sigmaos/wiki-20G'
+    docker cp ~/wiki-20G/enwiki ${kernelid}:/home/sigmaos/wiki-20G/enwiki
 ENDSSH
   ) &
 done
