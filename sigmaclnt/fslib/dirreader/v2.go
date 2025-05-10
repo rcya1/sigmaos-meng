@@ -99,7 +99,7 @@ func NewDirReaderV2(fslib *fslib.FsLib, pn string) (*DirReaderV2, error) {
 	}
 
 	// just for testing on this branch; give the server a bit of time to cool off and not let the opening of the folder affect the watch delay
-	time.Sleep(50 * time.Millisecond)
+	time.Sleep(500 * time.Millisecond)
 
 	return dr, nil
 }
