@@ -81,11 +81,9 @@ METRICS_TO_REPORT = ['overall', 'mapper', 'reducer', 'map_phase', 'mr_m_spawn_pr
 
 for dirname in os.listdir(ROOT):
     for version_from_list in VERSIONS:
-        if dirname.startswith("e2e-reducer-" + version_from_list):
+        # if dirname.startswith("e2e-" + version_from_list):
         # if dirname.startswith("10x-bin-" + version_from_list):
-        # if dirname.startswith("mapper-only-" + version_from_list):
-        # if dirname.startswith(version_from_list + "-1.6-benchmark"):
-        # if dirname.startswith("60G-mapper-only-" + version_from_list):
+        if dirname.startswith("mapper-only-" + version_from_list):
             print(f"Processing {dirname} for {version_from_list}")
             testroot = os.path.join(ROOT, dirname, "mr_vs_corral")
             if not os.path.exists(testroot):
