@@ -24,7 +24,7 @@ DURATION_RE = re.compile(r"Mean:\s+((?:(\d+)m)?([\d.]+)s)")
 
 # [mr-r-wc-ryan-mr-wiki20G-wc-ux-128.yml-mr-a47-benchrealm1-aad2bbbdfccecb98, kid\:sigma-node4-731]:
 
-TASK_TYPE_RE = re.compile(r"$(mr-([mr])-[^,$]+)") # Original regex
+TASK_TYPE_RE = re.compile(r"(mr-([mr])-[^,$]+)")
 
 # Match inner timing in lines like:
 
@@ -38,13 +38,18 @@ MAP_PHASE_RE = re.compile(r"map phase took (\d+)ms")
 
 # Example: "02:36:07.239267 mr-coord-... prep to spawn proc mr-m" -> captures "02:36:07.239267"
 
-PREP_SPAWN_RE = re.compile(r"^(\S+)\s+.*prep to spawn proc mr-m") # Corrected from ".\*" to ".*" for general interpretation, but original had ".\*"
+PREP_SPAWN_RE = re.compile(r"^(\S+)\s+.*prep to spawn proc mr-m")
 
 # Regexes for MR Job Preparation duration from bench.out.0
 # Example: "22:04:30.998712 ... TEST Prepare MR job ..."
 PREPARE_MR_JOB_RE = re.compile(r"^(\S+)\s+.*?TEST Prepare MR job")
 # Example: "22:04:31.933741 ... TEST Done prepare MR job ..."
 DONE_PREPARE_MR_JOB_RE = re.compile(r"^(\S+)\s+.*?TEST Done prepare MR job")
+
+# Regex for MR_COORD startTasks time, supporting ms or s
+# Captures: 1. Line Timestamp, 2. Time Value, 3. Time Unit
+# Example: "00:56:02.070011 mr-coord-... MR_COORD startTasks 683 time: 59.540758ms"
+START_TASKS_TIME_RE = re.compile(r"^(\S+)\s+.*?MR_COORD startTasks \d+ time: ([\d.]+)(ms|s)")
 
 
 def parse_duration(s):
@@ -77,13 +82,11 @@ def parse_log_timestamp(ts_str):
 # { testname: { version: { 'metric_name': [list of values] } } }
 
 results = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
-METRICS_TO_REPORT = ['overall', 'mapper', 'reducer', 'map_phase', 'mr_m_spawn_prep_duration', 'mr_job_prep_duration'] # Added 'mr_job_prep_duration'
+METRICS_TO_REPORT = ['overall', 'mapper', 'reducer', 'map_phase', 'mr_m_spawn_prep_duration', 'mr_job_prep_duration', 'start_tasks_duration']
 
 for dirname in os.listdir(ROOT):
     for version_from_list in VERSIONS:
-        # if dirname.startswith("e2e-" + version_from_list):
-        # if dirname.startswith("10x-bin-" + version_from_list):
-        if dirname.startswith("mapper-only-" + version_from_list):
+        if dirname.startswith("mapper-only-" + version_from_list): # Make sure this prefix matches your directory names
             print(f"Processing {dirname} for {version_from_list}")
             testroot = os.path.join(ROOT, dirname, "mr_vs_corral")
             if not os.path.exists(testroot):
@@ -92,13 +95,13 @@ for dirname in os.listdir(ROOT):
                 print(f"  Test: {testname}")
                 path = os.path.join(testroot, testname, "bench.out.0")
                 if not os.path.exists(path):
-                    print(f"  No file found at {path}")
+                    print(f"    No bench.out.0 file found at {path}")
                     continue
 
                 mapper_times_from_bench_out = []
                 reducer_times_from_bench_out = []
-                prepare_mr_job_ts_val = None # For the new metric
-                done_prepare_mr_job_ts_val = None  # For the new metric
+                prepare_mr_job_ts_val = None
+                done_prepare_mr_job_ts_val = None
                 
                 with open(path, 'r', encoding='utf-8', errors='ignore') as f:
                     lines = f.readlines()
@@ -108,14 +111,14 @@ for dirname in os.listdir(ROOT):
                     if overall_duration is not None:
                         results[testname][version_from_list]['overall'].append(overall_duration)
                     else:
-                        print(f"  No overall duration found in {path}")
+                        print(f"    No overall duration found in {path}")
                     
                     current_task_type = None
                     for i, line in enumerate(lines):
                         task_match = TASK_TYPE_RE.search(line)
                         if task_match:
                             current_task_type = task_match.group(2)
-                            continue
+                            continue 
                             
                         if current_task_type and "inner" in line:
                             inner_match = INNER_TIME_RE.search(line)
@@ -129,8 +132,7 @@ for dirname in os.listdir(ROOT):
                                     reducer_times_from_bench_out.append(inner_time_s)
                                 current_task_type = None
                         
-                        # New: Parse MR Job Preparation timestamps
-                        if prepare_mr_job_ts_val is None: # Find first occurrence
+                        if prepare_mr_job_ts_val is None:
                             match_prepare = PREPARE_MR_JOB_RE.search(line)
                             if match_prepare:
                                 ts_str = match_prepare.group(1)
@@ -138,9 +140,9 @@ for dirname in os.listdir(ROOT):
                                 if parsed_ts:
                                     prepare_mr_job_ts_val = parsed_ts
                                 else:
-                                    print(f"  Warning: Could not parse 'Prepare MR job' timestamp '{ts_str}' in {path} from line: {line.strip()}")
+                                    print(f"    Warning: Could not parse 'Prepare MR job' timestamp '{ts_str}' in {path} from line: {line.strip()}")
 
-                        if done_prepare_mr_job_ts_val is None: # Find first occurrence
+                        if done_prepare_mr_job_ts_val is None:
                             match_done = DONE_PREPARE_MR_JOB_RE.search(line)
                             if match_done:
                                 ts_str = match_done.group(1)
@@ -148,47 +150,48 @@ for dirname in os.listdir(ROOT):
                                 if parsed_ts:
                                     done_prepare_mr_job_ts_val = parsed_ts
                                 else:
-                                    print(f"  Warning: Could not parse 'Done Prepare MR job' timestamp '{ts_str}' in {path} from line: {line.strip()}")
-
-                # After processing all lines in bench.out.0:
+                                    print(f"    Warning: Could not parse 'Done Prepare MR job' timestamp '{ts_str}' in {path} from line: {line.strip()}")
 
                 if mapper_times_from_bench_out:
                     avg_mapper_time = sum(mapper_times_from_bench_out) / len(mapper_times_from_bench_out)
                     results[testname][version_from_list]['mapper'].append(avg_mapper_time)
                     stdev_str = f", std dev: {statistics.stdev(mapper_times_from_bench_out):.2f}s" if len(mapper_times_from_bench_out) > 1 else ""
                     median_str = f", median: {statistics.median(mapper_times_from_bench_out):.2f}s" if mapper_times_from_bench_out else ""
-                    print(f"  Found {len(mapper_times_from_bench_out)} mappers (bench.out), avg time: {avg_mapper_time:.2f}s{stdev_str}{median_str}")
+                    print(f"    Found {len(mapper_times_from_bench_out)} mappers (bench.out), avg time: {avg_mapper_time:.2f}s{stdev_str}{median_str}")
                 else:
-                    print(f"  No mapper times found in {path}")
+                    print(f"    No mapper times found in {path} for 'inner' time.")
                     
                 if reducer_times_from_bench_out:
                     avg_reducer_time = sum(reducer_times_from_bench_out) / len(reducer_times_from_bench_out)
                     results[testname][version_from_list]['reducer'].append(avg_reducer_time)
                     stdev_str = f", std dev: {statistics.stdev(reducer_times_from_bench_out):.2f}s" if len(reducer_times_from_bench_out) > 1 else ""
                     median_str = f", median: {statistics.median(reducer_times_from_bench_out):.2f}s" if reducer_times_from_bench_out else ""
-                    print(f"  Found {len(reducer_times_from_bench_out)} reducers (bench.out), avg time: {avg_reducer_time:.2f}s{stdev_str}{median_str}")
+                    print(f"    Found {len(reducer_times_from_bench_out)} reducers (bench.out), avg time: {avg_reducer_time:.2f}s{stdev_str}{median_str}")
                 else:
-                    print(f"  No reducer times found in {path}")
+                    print(f"    No reducer times found in {path} for 'inner' time.")
 
-                # New: Calculate and store MR Job Prep duration
                 if prepare_mr_job_ts_val and done_prepare_mr_job_ts_val:
                     if done_prepare_mr_job_ts_val >= prepare_mr_job_ts_val:
                         mr_job_prep_duration_s = (done_prepare_mr_job_ts_val - prepare_mr_job_ts_val).total_seconds()
                         results[testname][version_from_list]['mr_job_prep_duration'].append(mr_job_prep_duration_s)
-                        print(f"  Found MR Job Prep duration (bench.out): {mr_job_prep_duration_s:.3f}s")
+                        print(f"    Found MR Job Prep duration (bench.out): {mr_job_prep_duration_s:.3f}s")
                     else:
-                        print(f"  Warning: 'Done Prepare MR job' timestamp ({done_prepare_mr_job_ts_val}) is before 'Prepare MR job' timestamp ({prepare_mr_job_ts_val}) in {path}. Skipping this metric for this file.")
+                        print(f"    Warning: 'Done Prepare MR job' timestamp ({done_prepare_mr_job_ts_val}) is before 'Prepare MR job' timestamp ({prepare_mr_job_ts_val}) in {path}. Skipping this metric for this file.")
                 elif prepare_mr_job_ts_val and not done_prepare_mr_job_ts_val:
-                    print(f"  Found 'TEST Prepare MR job' but no 'TEST Done prepare MR job' in {path} for MR Job Prep duration calculation.")
+                    print(f"    Found 'TEST Prepare MR job' but no 'TEST Done prepare MR job' in {path} for MR Job Prep duration calculation.")
                 elif not prepare_mr_job_ts_val and done_prepare_mr_job_ts_val:
-                     print(f"  Found 'TEST Done prepare MR job' but no 'TEST Prepare MR job' in {path} for MR Job Prep duration calculation.")
+                     print(f"    Found 'TEST Done prepare MR job' but no 'TEST Prepare MR job' in {path} for MR Job Prep duration calculation.")
                 else:
-                    print(f"  No 'TEST Prepare MR job' / 'TEST Done prepare MR job' pair found in {path} for MR Job Prep duration calculation.")
+                    print(f"    No 'TEST Prepare MR job' / 'TEST Done prepare MR job' pair found in {path} for MR Job Prep duration calculation.")
 
 
                 logdir = os.path.join(testroot, testname, "sigmaos-node-logs")
                 map_phase_times_current_run = []
                 prep_spawn_durations_current_run = []
+                
+                # Variables to find the chronologically first startTasks event in this run
+                first_start_task_timestamp_for_run = None
+                first_start_task_duration_s_for_run = None
 
                 if os.path.exists(logdir):
                     for fname in os.listdir(logdir):
@@ -211,36 +214,74 @@ for dirname in os.listdir(ROOT):
                                         dt_obj = parse_log_timestamp(timestamp_str)
                                         if dt_obj:
                                             current_file_prep_spawn_timestamps.append(dt_obj)
+                                    
+                                    match_start_tasks = START_TASKS_TIME_RE.search(line)
+                                    if match_start_tasks:
+                                        line_timestamp_str = match_start_tasks.group(1)
+                                        time_val_str = match_start_tasks.group(2)
+                                        time_unit = match_start_tasks.group(3).lower()
+                                        
+                                        current_line_dt = parse_log_timestamp(line_timestamp_str)
+                                        if not current_line_dt:
+                                            print(f"    Warning: Could not parse line timestamp '{line_timestamp_str}' for startTasks in {fpath} from line: {line.strip()}")
+                                            continue
+
+                                        try:
+                                            time_val = float(time_val_str)
+                                            current_duration_s = 0
+                                            if time_unit == 'ms':
+                                                current_duration_s = time_val / 1000.0
+                                            elif time_unit == 's':
+                                                current_duration_s = time_val
+                                            else:
+                                                print(f"    Warning: Unknown time unit '{time_unit}' for startTasks time in {fpath} from line: {line.strip()}")
+                                                continue
+                                            
+                                            # Check if this is the first startTasks event or earlier than the current earliest
+                                            if first_start_task_timestamp_for_run is None or current_line_dt < first_start_task_timestamp_for_run:
+                                                first_start_task_timestamp_for_run = current_line_dt
+                                                first_start_task_duration_s_for_run = current_duration_s
+                                                # Optional debug:
+                                                # print(f"      DEBUG_STASKS_FIRST: New earliest in {fpath.split('/')[-1]} at {line_timestamp_str}, duration {current_duration_s:.6f}s")
+
+                                        except ValueError:
+                                            print(f"    Warning: Could not parse startTasks time value '{time_val_str}' to float in {fpath} from line: {line.strip()}")
+
                         except Exception as e:
-                            print(f"  Error reading {fpath}: {e}")
+                            print(f"    Error reading {fpath}: {e}")
 
                         if len(current_file_prep_spawn_timestamps) >= 2:
                             min_ts = min(current_file_prep_spawn_timestamps)
                             max_ts = max(current_file_prep_spawn_timestamps)
                             duration_seconds = (max_ts - min_ts).total_seconds()
-                            if duration_seconds >= 0: # Ensure duration is not negative
+                            if duration_seconds >= 0:
                                 prep_spawn_durations_current_run.append(duration_seconds)
 
+                    # After processing all files in logdir for the current run:
                     if map_phase_times_current_run:
                         avg_map_phase = sum(map_phase_times_current_run) / len(map_phase_times_current_run)
                         results[testname][version_from_list]['map_phase'].append(avg_map_phase)
-                        print(f"  Found {len(map_phase_times_current_run)} 'map phase' entries (logs), avg time: {avg_map_phase:.2f}s")
+                        print(f"    Found {len(map_phase_times_current_run)} 'map phase' entries (logs), avg time: {avg_map_phase:.3f}s")
                     else:
-                        print(f"  No 'map phase' times found in {logdir}")
+                        print(f"    No 'map phase' times found in logs in {logdir}")
 
                     if prep_spawn_durations_current_run:
-                        # If multiple log files contribute, we average these durations.
-                        # If only one log file had these, it's just that one duration.
                         avg_prep_spawn_duration_s = sum(prep_spawn_durations_current_run) / len(prep_spawn_durations_current_run)
                         results[testname][version_from_list]['mr_m_spawn_prep_duration'].append(avg_prep_spawn_duration_s)
                         avg_prep_spawn_duration_us = avg_prep_spawn_duration_s * 1_000_000
-                        print(f"  Found {len(prep_spawn_durations_current_run)} 'prep to spawn proc mr-m' durations (logs), avg: {avg_prep_spawn_duration_us:.0f}µs")
+                        print(f"    Found {len(prep_spawn_durations_current_run)} 'prep to spawn proc mr-m' durations (logs), avg: {avg_prep_spawn_duration_us:.0f}µs")
                     else:
-                        print(f"  No 'prep to spawn proc mr-m' durations found in logs for {logdir}")
+                        print(f"    No 'prep to spawn proc mr-m' durations found in logs for {logdir}")
+
+                    if first_start_task_duration_s_for_run is not None:
+                        results[testname][version_from_list]['start_tasks_duration'].append(first_start_task_duration_s_for_run)
+                        print(f"    Found first 'startTasks time' (logs) at {first_start_task_timestamp_for_run.strftime('%H:%M:%S.%f') if first_start_task_timestamp_for_run else 'N/A'}, duration: {first_start_task_duration_s_for_run:.3f}s")
+                    else:
+                        print(f"    No 'startTasks time' entries found in logs for {logdir}")
                 else:
                      print(f"  Log directory {logdir} not found.")
 
-def print_stats(data, label): # Original function
+def print_stats(data, label):
     if not data:
         print(f"  {label}: No data available")
         return
@@ -255,9 +296,9 @@ def print_stats(data, label): # Original function
     print(f"    all      = [{', '.join(f'{t:.2f}s' for t in sorted(data))}]")
 
 
-def print_comparison_table(data1, data2, label, v1, v2, metric_key): # Added metric_key
+def print_comparison_table(data1, data2, label, v1, v2, metric_key):
     print(f"  {label}:")
-    def format_val(fn, data, key_for_format): # Added key_for_format
+    def format_val(fn, data, key_for_format):
         try:
             if not data: return "N/A"
             if fn == statistics.stdev and len(data) < 2: return "N/A"
@@ -265,8 +306,8 @@ def print_comparison_table(data1, data2, label, v1, v2, metric_key): # Added met
             val = fn(data)
             if key_for_format == 'mr_m_spawn_prep_duration':
                 return f"{val * 1_000_000:.0f}µs"
-            else: # Covers 'overall', 'mapper', 'reducer', 'map_phase', and new 'mr_job_prep_duration'
-                return f"{val:.3f}s" # Using .3f for potentially small durations like job prep
+            else: 
+                return f"{val:.3f}s"
         except Exception:
             return "N/A"
 
@@ -280,7 +321,6 @@ def print_comparison_table(data1, data2, label, v1, v2, metric_key): # Added met
             val2 = str(len(data2)) if data2 else "0"
         else:
             fn = None
-            # Simpler getattr logic, format_val handles stdev([]) cases
             if hasattr(statistics, stat_str): fn = getattr(statistics, stat_str)
             elif stat_str == "min": fn = min
             elif stat_str == "max": fn = max
@@ -292,79 +332,69 @@ def print_comparison_table(data1, data2, label, v1, v2, metric_key): # Added met
 
     col1_width = max(len(row[0]) for row in rows) + 2 if rows else 6
     col2_width = max(15, len(v1) + 2) if rows else 15
-    # Determine width for val2 based on its content
     max_val2_len = 0
     if rows:
         max_val2_len = max(len(row[2]) for row in rows)
     col3_width = max(max(15, len(v2) + 2), max_val2_len) if rows else 15
 
 
-    print(f"    {'Stat':<{col1_width}}{v1:<{col2_width}}{v2:<{col3_width}}") # Adjusted v2 width
-    for name, v1_val, v2_val in rows: # Renamed val1, val2 to avoid conflict
+    print(f"    {'Stat':<{col1_width}}{v1:<{col2_width}}{v2:<{col3_width}}")
+    for name, v1_val, v2_val in rows:
         print(f"    {name:<{col1_width}}{v1_val:<{col2_width}}{v2_val:<{col3_width}}")
 
 
-def perform_ttest(data1, data2, label1, label2, metric_key): # Added metric_key
+def perform_ttest(data1, data2, label1, label2, metric_key):
     if len(data1) < 2 or len(data2) < 2:
         return
-    stat, pval = ttest_ind(data1, data2, equal_var=False)
+    try:
+        mean1_val = statistics.mean(data1)
+        mean2_val = statistics.mean(data2)
+    except statistics.StatisticsError: # Handle case where data might be empty after all, though guarded by len checks
+        print(f"  t-test between {label1} and {label2}: Could not compute means (empty data).")
+        return
 
-    mean1_val = statistics.mean(data1)
-    mean2_val = statistics.mean(data2)
+    stat, pval = ttest_ind(data1, data2, equal_var=False, nan_policy='omit') # omit nans if any somehow get in
+
     pct_diff = 0
     if mean1_val != 0:
         pct_diff = ((mean2_val - mean1_val) / mean1_val) * 100
-    elif mean2_val != 0: # mean1_val is 0, but mean2_val is not
-        pct_diff = float('inf') if mean2_val > 0 else float('-inf') # Or some large number if mean2_val also could be negative. Assuming positive times.
+    elif mean2_val != 0:
+        pct_diff = float('inf') if mean2_val > 0 else float('-inf')
 
     is_significant = pval < 0.05
-    # Assuming lower is better for time-based metrics
-    # If mean2 is less than mean1, pct_diff will be negative.
-    # This means label2 is faster. "Improvement for label1" is if label2 is SLOWER (pct_diff > 0)
-    # Let's rephrase: is label2 performing worse (slower) than label1?
-    is_slower_for_label2 = pct_diff > 0 
-
-    # Color GREEN if significant AND label2 is slower (worse for label2, better for label1 if we prefer label1)
-    # Color RED if significant AND label2 is faster (better for label2)
-    # Or, more simply: if label2 is slower, it's "worse" for label2.
-    # Let's use the original color logic: GREEN if (significant and improvement_for_label1) else RED
-    # "Improvement for label1" means label2 is slower than label1.
-    is_improvement_for_label1 = pct_diff > 0 # This means mean2 > mean1 (label2 is slower)
-
+    
     color = RESET
     if is_significant:
-        if mean2_val < mean1_val: # label2 is faster
-            color = GREEN # Good for label2
-        elif mean2_val > mean1_val: # label2 is slower
-            color = RED # Bad for label2
-    # If means are equal but pval is significant (unlikely with float means), it's ambiguous.
+        if mean2_val < mean1_val: 
+            color = GREEN 
+        elif mean2_val > mean1_val: 
+            color = RED 
 
     print(f"  t-test between {label1} and {label2}:")
     print(f"    t-statistic = {stat:.4f}")
 
-    p_value_str = f"    p-value     = {color}{pval:.4f}{RESET}" # Apply color here
+    p_value_str = f"    p-value     = {color}{pval:.4f}{RESET}"
     print(p_value_str + (f" {color}(Significant!){RESET}" if is_significant else ""))
 
-    # Format means based on metric_key for display
     mean1_display, mean2_display = "", ""
-    unit_display = "s"
     if metric_key == 'mr_m_spawn_prep_duration':
         mean1_display = f"{mean1_val * 1_000_000:.0f}µs"
         mean2_display = f"{mean2_val * 1_000_000:.0f}µs"
-        unit_display = "µs" 
-    else: # Covers 'overall', 'mapper', 'reducer', 'map_phase', and new 'mr_job_prep_duration'
-        mean1_display = f"{mean1_val:.3f}s" # Using .3f for consistency
+    else: 
+        mean1_display = f"{mean1_val:.3f}s"
         mean2_display = f"{mean2_val:.3f}s"
 
-    if mean1_val == mean2_val: # Handles 0/0 case and identical means
+    if mean1_val == mean2_val:
          direction_msg = f"    Means are identical: {label1} {mean1_display}, {label2} {mean2_display}"
-    elif mean1_val == 0: # Avoid division by zero, special case message
+    elif mean1_val == 0 and mean2_val == 0 : # Both zero
+         direction_msg = f"    Means are identical (both 0): {label1} {mean1_display}, {label2} {mean2_display}"
+    elif mean1_val == 0:
         direction_msg = f"    {label1} is {mean1_display}, {label2} is {mean2_display}"
     elif mean2_val == 0:
-        direction_msg = f"    {label1} is {mean1_display}, {label2} is {mean2_display} ({RED}infinitely faster{RESET} than {label1})"
-    elif pct_diff < 0: # mean2 is smaller than mean1 (label2 is faster)
+        direction_msg = f"    {label1} is {mean1_display}, {label2} is {mean2_display} ({GREEN}infinitely faster{RESET} than {label1} if 0 is better)"
+    elif pct_diff < 0:
         direction_msg = f"    {label2} is {GREEN}{abs(pct_diff):.2f}% faster{RESET} than {label1} (means: {label1} {mean1_display}, {label2} {mean2_display})"
-    else: # mean2 is larger than mean1 (label2 is slower)
+    else:
         direction_msg = f"    {label2} is {RED}{pct_diff:.2f}% slower{RESET} than {label1} (means: {label1} {mean1_display}, {label2} {mean2_display})"
             
     print(direction_msg)
@@ -381,7 +411,7 @@ for testname in sorted(results.keys()):
         data1 = results[testname].get(v1_name, {}).get(metric_key, [])
         data2 = results[testname].get(v2_name, {}).get(metric_key, [])
         
-        if data1 or data2: # Print table if data exists for at least one version
+        if data1 or data2:
             metric_display_name = metric_key.replace('_', ' ').capitalize()
             print_comparison_table(data1, data2, f"{metric_display_name} Time", v1_name, v2_name, metric_key)
 
@@ -392,14 +422,13 @@ for testname in sorted(results.keys()):
             data1 = results[testname][v1_name].get(metric_key, [])
             data2 = results[testname][v2_name].get(metric_key, [])
             
-            if data1 and data2: # Perform t-test only if data exists for both versions
+            if len(data1) > 0 and len(data2) > 0 : # Perform t-test only if data exists for both versions
                 metric_display_name = metric_key.replace('_', ' ').capitalize()
                 print(f"\n{metric_display_name} Time Comparison:")
                 perform_ttest(data1, data2, v1_name, v2_name, metric_key)
             elif data1 or data2: # Data for one version but not both
                  metric_display_name = metric_key.replace('_', ' ').capitalize()
                  print(f"\n{metric_display_name} Time Comparison: Insufficient data for t-test (need data for both versions: {v1_name} has {len(data1)} runs, {v2_name} has {len(data2)} runs)")
-            # If neither data1 nor data2, it was already skipped by the outer condition for METRICS_TO_REPORT loop
     else:
         print("\n--- Statistical Comparison ---")
         print(f"  Insufficient data: one or both versions ({v1_name}, {v2_name}) missing for test '{testname}'. Skipping t-tests.")
