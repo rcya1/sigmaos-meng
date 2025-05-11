@@ -364,19 +364,19 @@ func (c *Coord) makeReduceBins() error {
 		return err
 	}
 
-	ms, err := c.mft.JobState()
-	if err != nil {
-		return err
-	}
+	// ms, err := c.mft.JobState()
+	// if err != nil {
+	// 	return err
+	// }
 
-	db.DPrintf(db.MR_COORD, "Mappers job state %v", ms)
+	// db.DPrintf(db.MR_COORD, "Mappers job state %v", ms)
 
-	rs, err := c.rft.JobState()
-	if err != nil {
-		return err
-	}
+	// rs, err := c.rft.JobState()
+	// if err != nil {
+	// 	return err
+	// }
 
-	db.DPrintf(db.MR_COORD, "Reducers job state %v", rs)
+	// db.DPrintf(db.MR_COORD, "Reducers job state %v", rs)
 
 	// get all reducers (including those that succeeded in previous rounds) in sorted order to ensure
 	// any restarted reducers are given the exact same files as before
