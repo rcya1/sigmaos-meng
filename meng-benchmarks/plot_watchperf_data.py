@@ -238,7 +238,7 @@ def check_num_outliers(timestamp, bucket):
     print(pd.Series(pct_outliers_v2).describe())
 
 if __name__ == "__main__":
-    timestamp = "2024-12-05_16:27:07"
+    timestamp = "2025-05-10_03:35:07"
     session = boto3.Session(profile_name='sigmaos')
     s3_resource = session.resource('s3')
     bucket = s3_resource.Bucket('sigmaos-bucket-ryan')

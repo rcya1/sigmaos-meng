@@ -6,13 +6,21 @@
 
 export S3_BUCKET="sigmaos-bucket-ryan/$(date +%Y-%m-%d_%H:%M:%S)"
 
-DIRREADER_VERSIONS=("1" "2")
-MEASURE_MODES=("watch_only" "include_op")
-USE_NAMEDS=("0" "1")
-NUM_STARTING_FILES=("0" "100" "500" "1000")
+# DIRREADER_VERSIONS=("1" "2")
+# MEASURE_MODES=("watch_only" "include_op")
+# USE_NAMEDS=("0" "1")
+# NUM_STARTING_FILES=("0" "100" "500" "1000")
 
-NUM_WORKERS=("1" "5" "10" "15")
-NUM_FILES_PER_TRIAL=("1" "5" "10" "15")
+# NUM_WORKERS=("1" "5" "10" "15")
+# NUM_FILES_PER_TRIAL=("1" "5" "10" "15")
+
+DIRREADER_VERSIONS=("2")
+MEASURE_MODES=("watch_only")
+USE_NAMEDS=("0")
+NUM_STARTING_FILES=("0" "100" "500" "1000" "5000" "10000")
+
+NUM_WORKERS=("1")
+NUM_FILES_PER_TRIAL=("1")
 
 retry_until_success() {
   local log_prefix=$1
@@ -40,7 +48,7 @@ retry_until_success() {
 }
 
 ./stop.sh
-./build.sh --parallel
+# ./build.sh --parallel
 
 for DIRREADER_VERSION in "${DIRREADER_VERSIONS[@]}"; do
   for STARTING_FILES in "${NUM_STARTING_FILES[@]}"; do
@@ -52,7 +60,7 @@ for DIRREADER_VERSION in "${DIRREADER_VERSIONS[@]}"; do
               continue
             fi
             
-            NUM_TRIALS=$((150 / FILES_PER_TRIAL))
+            NUM_TRIALS=$((500 / FILES_PER_TRIAL))
             
             DIRREADER_VERSION="$DIRREADER_VERSION" \
             MEASURE_MODE="$MEASURE_MODE" \

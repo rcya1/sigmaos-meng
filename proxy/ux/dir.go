@@ -15,6 +15,7 @@ import (
 
 type Dir struct {
 	*Obj
+	read bool
 	sd *sortedmapv1.SortedMap[string, *sp.Tstat]
 }
 
@@ -29,6 +30,7 @@ func newDir(path path.Tpathname) (*Dir, *serr.Err) {
 		return nil, err
 	}
 	d.Obj = o
+	d.read = false
 	d.sd = sortedmapv1.NewSortedMap[string, *sp.Tstat]()
 	return d, nil
 }
@@ -52,6 +54,12 @@ func (d *Dir) uxReadDir() *serr.Err {
 
 func (d *Dir) ReadDir(ctx fs.CtxI, cursor int, cnt sp.Tsize) ([]*sp.Tstat, *serr.Err) {
 	db.DPrintf(db.UX, "%v: ReadDir %v %v %v\n", ctx, d, cursor, cnt)
+	if !d.read {
+		if err := d.uxReadDir(); err != nil {
+			return nil, err
+		}
+		d.read = true
+	}
 	dents := make([]*sp.Tstat, 0, d.sd.Len())
 	d.sd.Iter(func(n string, e *sp.Tstat) bool {
 		dents = append(dents, e)
@@ -66,14 +74,15 @@ func (d *Dir) ReadDir(ctx fs.CtxI, cursor int, cnt sp.Tsize) ([]*sp.Tstat, *serr
 
 func (d *Dir) Open(ctx fs.CtxI, m sp.Tmode) (fs.FsObj, *serr.Err) {
 	db.DPrintf(db.UX, "%v: DirOpen %v %v\n", ctx, d, m)
-	if err := d.uxReadDir(); err != nil {
-		return nil, err
-	}
+	// if err := d.uxReadDir(); err != nil {
+	// 	return nil, err
+	// }
 	return nil, nil
 }
 
 func (d *Dir) Close(ctx fs.CtxI, mode sp.Tmode) *serr.Err {
 	d.sd = sortedmapv1.NewSortedMap[string, *sp.Tstat]()
+	d.read = false
 	return nil
 }
 
