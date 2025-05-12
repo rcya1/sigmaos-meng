@@ -86,7 +86,7 @@ METRICS_TO_REPORT = ['overall', 'mapper', 'reducer', 'map_phase', 'mr_m_spawn_pr
 
 for dirname in os.listdir(ROOT):
     for version_from_list in VERSIONS:
-        if dirname.startswith("mapper-only-" + version_from_list): # Make sure this prefix matches your directory names
+        if dirname.startswith("e2e-" + version_from_list): # Make sure this prefix matches your directory names
             print(f"Processing {dirname} for {version_from_list}")
             testroot = os.path.join(ROOT, dirname, "mr_vs_corral")
             if not os.path.exists(testroot):
