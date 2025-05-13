@@ -6,21 +6,13 @@
 
 export S3_BUCKET="sigmaos-bucket-ryan/$(date +%Y-%m-%d_%H:%M:%S)"
 
-# DIRREADER_VERSIONS=("1" "2")
-# MEASURE_MODES=("watch_only" "include_op")
-# USE_NAMEDS=("0" "1")
-# NUM_STARTING_FILES=("0" "100" "500" "1000")
+DIRREADER_VERSIONS=("1" "2")
+MEASURE_MODES=("watch_only" "include_op")
+USE_NAMEDS=("0" "1")
+NUM_STARTING_FILES=("0" "100" "500" "1000")
 
-# NUM_WORKERS=("1" "5" "10" "15")
-# NUM_FILES_PER_TRIAL=("1" "5" "10" "15")
-
-DIRREADER_VERSIONS=("2")
-MEASURE_MODES=("watch_only")
-USE_NAMEDS=("0")
-NUM_STARTING_FILES=("0" "100" "500" "1000" "5000" "10000")
-
-NUM_WORKERS=("1")
-NUM_FILES_PER_TRIAL=("1")
+NUM_WORKERS=("1" "5" "10" "15")
+NUM_FILES_PER_TRIAL=("1" "5" "10" "15")
 
 retry_until_success() {
   local log_prefix=$1
