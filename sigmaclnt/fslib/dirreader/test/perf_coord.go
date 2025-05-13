@@ -244,7 +244,7 @@ func (c *PerfCoord) handleTrial(trial int, delete bool, responseDirReader dirrea
 				db.DFatalf("Run: failed to %s trial file %d %d, %v", opType, trial, ix, err)
 			}
 		}
-		time.Sleep(50 * time.Millisecond) 
+		time.Sleep(25 * time.Millisecond) 
 
 		_, err = c.Create(signalPath, 0777, sp.OAPPEND)
 		if err != nil {
