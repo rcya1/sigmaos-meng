@@ -9,7 +9,7 @@ export S3_BUCKET="sigmaos-bucket-ryan/$(date +%Y-%m-%d_%H:%M:%S)"
 DIRREADER_VERSIONS=("1" "2")
 MEASURE_MODES=("watch_only" "include_op")
 USE_NAMEDS=("0" "1")
-NUM_STARTING_FILES=("0" "100" "500" "1000")
+NUM_STARTING_FILES=("0" "100" "500" "1000" "5000" "10000")
 
 NUM_WORKERS=("1" "5" "10" "15")
 NUM_FILES_PER_TRIAL=("1" "5" "10" "15")
@@ -49,6 +49,9 @@ for DIRREADER_VERSION in "${DIRREADER_VERSIONS[@]}"; do
         for MEASURE_MODE in "${MEASURE_MODES[@]}"; do
           for USE_NAMED in "${USE_NAMEDS[@]}"; do
             if (( STARTING_FILES > 0 )) && (( WORKERS > 1 || FILES_PER_TRIAL > 1 )); then
+              continue
+            fi
+            if (( STARTING_FILES > 1000 )) && (( DIRREADER_VERSION < 2 || FILES_PER_TRIAL > 1 || WORKERS > 1 )); then
               continue
             fi
             
