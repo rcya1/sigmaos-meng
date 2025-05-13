@@ -62,13 +62,17 @@ def plot_histogram(data, bins=10, title="Histogram", xlabel="Value", ylabel="Fre
     plt.legend()
 
 def process_file(file, bucket, label_suffix=""):
-    create_watch_times, delete_watch_times = read_data(file, bucket)
-    create_watch_times = remove_outliers(create_watch_times)
+    try:
+        create_watch_times, delete_watch_times = read_data(file, bucket)
+        create_watch_times = remove_outliers(create_watch_times)
 
-    # print_stats(create_watch_times, delete_watch_times)
-    
-    plot_histogram(create_watch_times, bins=30, title="", xlabel="Delay (us)", ylabel="Frequency", label=(label_suffix))
-    # plot_histogram(delete_watch_times, bins=30, title="Watch Times", xlabel="Delay (us)", ylabel="Frequency", save=save, label=("Delete" + label_suffix))
+        # print_stats(create_watch_times, delete_watch_times)
+        
+        plot_histogram(create_watch_times, bins=30, title="", xlabel="Delay (ms)", ylabel="Frequency", label=(label_suffix))
+        # plot_histogram(delete_watch_times, bins=30, title="Watch Times", xlabel="Delay (ms)", ylabel="Frequency", save=save, label=("Delete" + label_suffix))
+    except Exception as e:
+        print(f"Error processing file {file}: {e}")
+        return
 
 def save_file(save):
     os.makedirs(os.path.dirname(save), exist_ok=True)
@@ -83,6 +87,7 @@ def plot_histograms(timestamp, bucket):
                 process_file(f"{timestamp}/{v}/1wkrs_100stfi_1fpt_{loc}_{typ}", bucket, label_suffix="100 starting files")
                 process_file(f"{timestamp}/{v}/1wkrs_500stfi_1fpt_{loc}_{typ}", bucket, label_suffix="500 starting files")
                 process_file(f"{timestamp}/{v}/1wkrs_1000stfi_1fpt_{loc}_{typ}", bucket, label_suffix="1000 starting files")
+                process_file(f"{timestamp}/{v}/1wkrs_5000stfi_1fpt_{loc}_{typ}", bucket, label_suffix="5000 starting files")
                 save_file(f"./{timestamp}/{v}/1wkrs_*stfi_1fpt_{loc}_{typ}.png")
 
                 process_file(f"{timestamp}/{v}/1wkrs_0stfi_1fpt_{loc}_{typ}", bucket, label_suffix="1 watcher")
@@ -149,13 +154,35 @@ def plot_starting_file_graph(timestamp, bucket):
     plt.plot(x_values, data[0], label="V1", marker='o')
     plt.plot(x_values, data[1], label="V2", marker='o')
     plt.xlabel("Num Starting Files")
-    plt.ylabel("Mean Watch Time (us)")
+    plt.ylabel("Mean Watch Time (ms)")
     plt.xticks(x_values)
     plt.grid(axis='x', which='major')
     plt.grid(axis='y')
     plt.legend()
     os.makedirs(timestamp, exist_ok=True)
     plt.savefig(f"./{timestamp}/mean_watch_time_vs_starting_files.png")
+    plt.clf()
+
+def plot_starting_file_graph2(timestamp, bucket):
+    data = []
+    x_values = [0, 100, 500, 1000, 5000]
+    for nstfi in x_values:
+        file = f"{timestamp}/V2/1wkrs_{nstfi}stfi_1fpt_local_watch_only"
+        create_watch_times, _ = read_data(file, bucket)
+        create_watch_times = remove_outliers(create_watch_times)
+
+        data.append(np.mean(create_watch_times))
+
+    plt.plot(x_values, data, marker='o')
+    plt.xlabel("Num Starting Files")
+    plt.ylabel("Mean Watch Time (us)")
+    plt.ylim(200, 300)
+    plt.xticks(x_values, rotation=45)
+    plt.tight_layout()
+    plt.grid(axis='x', which='major')
+    plt.grid(axis='y')
+    os.makedirs(timestamp, exist_ok=True)
+    plt.savefig(f"./{timestamp}/mean_watch_time_vs_starting_files2.png")
     plt.clf()
 
 def plot_wkrs_graph(timestamp, bucket):
@@ -173,7 +200,7 @@ def plot_wkrs_graph(timestamp, bucket):
         plt.plot(x_values, data[0], label="V1", marker='o')
         plt.plot(x_values, data[1], label="V2", marker='o')
         plt.xlabel("Num Workers")
-        plt.ylabel("Mean Watch Time (us)")
+        plt.ylabel("Mean Watch Time (ms)")
         plt.xticks(x_values)
         plt.grid(axis='x', which='major')
         plt.grid(axis='y')
@@ -199,7 +226,7 @@ def plot_fpt_graph(timestamp, bucket):
         plt.plot(x_values, data[0], label="V1", marker='o')
         plt.plot(x_values, data[1], label="V2", marker='o')
         plt.xlabel("Files per Trial")
-        plt.ylabel("Mean Watch Time (us)")
+        plt.ylabel("Mean Watch Time (ms)")
         plt.xticks(x_values)
         plt.grid(axis='x', which='major')
         plt.grid(axis='y')
@@ -238,14 +265,15 @@ def check_num_outliers(timestamp, bucket):
     print(pd.Series(pct_outliers_v2).describe())
 
 if __name__ == "__main__":
-    timestamp = "2025-05-10_03:35:07"
+    timestamp = "2025-05-12_22:43:34"
     session = boto3.Session(profile_name='sigmaos')
     s3_resource = session.resource('s3')
     bucket = s3_resource.Bucket('sigmaos-bucket-ryan')
             
-    plot_histograms(timestamp, bucket)
-    compute_speedups(timestamp, bucket)
+    # plot_histograms(timestamp, bucket)
+    # compute_speedups(timestamp, bucket)
     plot_starting_file_graph(timestamp, bucket)
-    plot_wkrs_graph(timestamp, bucket)
-    plot_fpt_graph(timestamp, bucket)
-    check_num_outliers(timestamp, bucket)
+    plot_starting_file_graph2(timestamp, bucket)
+    # plot_wkrs_graph(timestamp, bucket)
+    # plot_fpt_graph(timestamp, bucket)
+    # check_num_outliers(timestamp, bucket)
