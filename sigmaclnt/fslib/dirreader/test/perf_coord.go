@@ -243,18 +243,8 @@ func (c *PerfCoord) handleTrial(trial int, delete bool, responseDirReader dirrea
 			if err != nil {
 				db.DFatalf("Run: failed to %s trial file %d %d, %v", opType, trial, ix, err)
 			}
-
-			// wait for us to see it locally before signaling the worker to watch
-			if !delete {
-				err = dirreader.WaitCreate(c.FsLib, path)
-			} else {
-				err = dirreader.WaitRemove(c.FsLib, path)
-			}
-			if err != nil {
-				db.DFatalf("Run: failed to wait for file creation %v", err)
-			}
 		}
-		time.Sleep(10 * time.Millisecond) 
+		time.Sleep(50 * time.Millisecond) 
 
 		_, err = c.Create(signalPath, 0777, sp.OAPPEND)
 		if err != nil {
