@@ -5,6 +5,7 @@
 # export SIGMAPERF="WATCH_TEST_WORKER_PPROF;WATCH_TEST_WORKER_PPROF_MUTEX;WATCH_TEST_WORKER_PPROF_BLOCK;WATCH_PERF_WORKER_PPROF;UX_PPROF;WATCH_PERF_WORKER_PPROF_MUTEX;UX_PPROF_MUTEX"
 
 export S3_BUCKET="sigmaos-bucket-ryan/$(date +%Y-%m-%d_%H:%M:%S)"
+echo "S3_BUCKET is set to $S3_BUCKET"
 
 DIRREADER_VERSIONS=("1" "2")
 MEASURE_MODES=("watch_only" "include_op")
@@ -55,7 +56,7 @@ for DIRREADER_VERSION in "${DIRREADER_VERSIONS[@]}"; do
               continue
             fi
             
-            NUM_TRIALS=$((500 / FILES_PER_TRIAL))
+            NUM_TRIALS=$((150 / FILES_PER_TRIAL))
             
             DIRREADER_VERSION="$DIRREADER_VERSION" \
             MEASURE_MODE="$MEASURE_MODE" \
