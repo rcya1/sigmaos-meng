@@ -1,7 +1,9 @@
 package main
 
 import (
+	"math"
 	"os"
+	"runtime/debug"
 
 	db "sigmaos/debug"
 	"sigmaos/proc"
@@ -13,6 +15,9 @@ func main() {
 	if len(os.Args) < 6 {
 		db.DFatalf("Usage: %v nworkers nstartfiles ntrials basedir measuremode\n", os.Args[0])
 	}
+
+	debug.SetGCPercent(-1) // disable GC
+	debug.SetMemoryLimit(math.MaxInt64)
 
 	p, err := perf.NewPerf(proc.GetProcEnv(), "WATCH_PERF_COORD")
 	if err != nil {

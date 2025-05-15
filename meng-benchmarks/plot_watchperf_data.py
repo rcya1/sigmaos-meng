@@ -88,6 +88,7 @@ def plot_histograms(timestamp, bucket):
                 process_file(f"{timestamp}/{v}/1wkrs_500stfi_1fpt_{loc}_{typ}", bucket, label_suffix="500 starting files")
                 process_file(f"{timestamp}/{v}/1wkrs_1000stfi_1fpt_{loc}_{typ}", bucket, label_suffix="1000 starting files")
                 process_file(f"{timestamp}/{v}/1wkrs_5000stfi_1fpt_{loc}_{typ}", bucket, label_suffix="5000 starting files")
+                process_file(f"{timestamp}/{v}/1wkrs_10000stfi_1fpt_{loc}_{typ}", bucket, label_suffix="5000 starting files")
                 save_file(f"./{timestamp}/{v}/1wkrs_*stfi_1fpt_{loc}_{typ}.png")
 
                 process_file(f"{timestamp}/{v}/1wkrs_0stfi_1fpt_{loc}_{typ}", bucket, label_suffix="1 watcher")
@@ -199,7 +200,7 @@ def plot_wkrs_graph(timestamp, bucket):
 
         plt.plot(x_values, data[0], label="V1", marker='o')
         plt.plot(x_values, data[1], label="V2", marker='o')
-        plt.xlabel("Num Workers")
+        plt.xlabel("Num Watchers")
         plt.ylabel("Mean Watch Time (ms)")
         plt.xticks(x_values)
         plt.grid(axis='x', which='major')

@@ -1,14 +1,19 @@
 package main
 
 import (
+	"math"
 	"os"
 	"path"
+	"runtime/debug"
 
 	db "sigmaos/debug"
-	"sigmaos/proxy/ux"
+	fsux "sigmaos/proxy/ux"
 )
 
 func main() {
+	debug.SetGCPercent(-1) // disable GC
+	debug.SetMemoryLimit(math.MaxInt64)
+
 	if len(os.Args) != 2 {
 		db.DFatalf("Usage: %v rootux", os.Args[0])
 	}
