@@ -45,7 +45,7 @@ def remove_outliers(data):
     IQR = Q3 - Q1
     
     lower_bound = min(data)
-    upper_bound = Q3 + 3 * IQR
+    upper_bound = Q3 + 5 * IQR
     
     return [x for x in data if lower_bound <= x <= upper_bound]
 
@@ -218,7 +218,6 @@ def plot_fpt_graph(timestamp, bucket):
             for fpt in x_values:
                 file = f"{timestamp}/{v}/1wkrs_0stfi_{fpt}fpt_local_{measure}"
                 create_watch_times, _ = read_data(file, bucket)
-                print("percentage removed: ", (len(create_watch_times) - len(remove_outliers(create_watch_times))) / len(create_watch_times) * 100)
 
                 create_watch_times = remove_outliers(create_watch_times)
 
@@ -252,12 +251,16 @@ def check_num_outliers(timestamp, bucket):
         if pct_outliers_v1[-1] > 10:
             print(file)
             print("Difference in mean: ", np.mean(v1_create) - np.mean(remove_outliers(v1_create)))
+            plot_histogram(v1_create, bins=30, title="", xlabel="Delay (ms)", ylabel="Frequency", label="V1")
+            save_file(f"./{timestamp}/outlier_{file.split('/')[-1]}.png")
 
         v2_create, _ = read_data(file.replace("V1", "V2"), bucket)
         pct_outliers_v2.append((len(v2_create) - len(remove_outliers(v2_create))) / len(v2_create) * 100)
         if pct_outliers_v2[-1] > 10:
             print(file.replace("V1", "V2"))
             print("Difference in mean: ", np.mean(v2_create) - np.mean(remove_outliers(v2_create)))
+            plot_histogram(v1_create, bins=30, title="", xlabel="Delay (ms)", ylabel="Frequency", label="V2")
+            save_file(f"./{timestamp}/outlier_{file.split('/')[-1]}.png")
     
     print("V1")
     print(pd.Series(pct_outliers_v1).describe())
@@ -266,15 +269,15 @@ def check_num_outliers(timestamp, bucket):
     print(pd.Series(pct_outliers_v2).describe())
 
 if __name__ == "__main__":
-    timestamp = "2025-05-12_22:43:34"
+    timestamp = "2025-05-15_04:14:03"
     session = boto3.Session(profile_name='sigmaos')
     s3_resource = session.resource('s3')
     bucket = s3_resource.Bucket('sigmaos-bucket-ryan')
             
-    # plot_histograms(timestamp, bucket)
-    # compute_speedups(timestamp, bucket)
+    plot_histograms(timestamp, bucket)
+    compute_speedups(timestamp, bucket)
     plot_starting_file_graph(timestamp, bucket)
     plot_starting_file_graph2(timestamp, bucket)
-    # plot_wkrs_graph(timestamp, bucket)
-    # plot_fpt_graph(timestamp, bucket)
-    # check_num_outliers(timestamp, bucket)
+    plot_wkrs_graph(timestamp, bucket)
+    plot_fpt_graph(timestamp, bucket)
+    check_num_outliers(timestamp, bucket)
