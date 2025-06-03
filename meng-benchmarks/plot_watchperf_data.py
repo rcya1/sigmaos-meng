@@ -89,19 +89,19 @@ def plot_histograms(timestamp, bucket):
                 process_file(f"{timestamp}/{v}/1wkrs_1000stfi_1fpt_{loc}_{typ}", bucket, label_suffix="1000 starting files")
                 process_file(f"{timestamp}/{v}/1wkrs_5000stfi_1fpt_{loc}_{typ}", bucket, label_suffix="5000 starting files")
                 process_file(f"{timestamp}/{v}/1wkrs_10000stfi_1fpt_{loc}_{typ}", bucket, label_suffix="5000 starting files")
-                save_file(f"./{timestamp}/{v}/1wkrs_*stfi_1fpt_{loc}_{typ}.png")
+                save_file(f"./{timestamp}/{v}/1wkrs_*stfi_1fpt_{loc}_{typ}.pdf")
 
                 process_file(f"{timestamp}/{v}/1wkrs_0stfi_1fpt_{loc}_{typ}", bucket, label_suffix="1 watcher")
                 process_file(f"{timestamp}/{v}/5wkrs_0stfi_1fpt_{loc}_{typ}", bucket, label_suffix="5 watchers")
                 process_file(f"{timestamp}/{v}/10wkrs_0stfi_1fpt_{loc}_{typ}", bucket, label_suffix="10 watchers")
                 process_file(f"{timestamp}/{v}/15wkrs_0stfi_1fpt_{loc}_{typ}", bucket, label_suffix="15 watchers")
-                save_file(f"./{timestamp}/{v}/*wkrs_0stfi_1fpt_{loc}_{typ}.png")
+                save_file(f"./{timestamp}/{v}/*wkrs_0stfi_1fpt_{loc}_{typ}.pdf")
 
                 process_file(f"{timestamp}/{v}/1wkrs_0stfi_1fpt_{loc}_{typ}", bucket, label_suffix="1 file / trial")
                 process_file(f"{timestamp}/{v}/1wkrs_0stfi_5fpt_{loc}_{typ}", bucket, label_suffix="5 files / trial")
                 process_file(f"{timestamp}/{v}/1wkrs_0stfi_10fpt_{loc}_{typ}", bucket, label_suffix="10 files / trial")
                 process_file(f"{timestamp}/{v}/1wkrs_0stfi_15fpt_{loc}_{typ}", bucket, label_suffix="15 files / trial")
-                save_file(f"./{timestamp}/{v}/1wkrs_0stfi_*fpt_{loc}_{typ}.png")
+                save_file(f"./{timestamp}/{v}/1wkrs_0stfi_*fpt_{loc}_{typ}.pdf")
 
 def compute_speedups(timestamp, bucket):
     files = []
@@ -131,6 +131,7 @@ def compute_speedups(timestamp, bucket):
             speedups_watch_only.append(create_speedup)
             if "1000stfi" in file:
                 speedups_1000_stfi.append(create_speedup)
+                print(f"1000stfi: {create_speedup} {np.mean(v1_create)} {np.mean(v2_create)}")
     
     print("Include Op")
     print(pd.Series(speedups_include_op).describe())
@@ -144,7 +145,7 @@ def compute_speedups(timestamp, bucket):
 def plot_starting_file_graph(timestamp, bucket):
     data = [[], []]
     x_values = [0, 100, 500, 1000]
-    for ix, v in enumerate(['V1', 'V2']):
+    for ix, v in enumerate(['V2', 'V1']):
         for nstfi in x_values:
             file = f"{timestamp}/{v}/1wkrs_{nstfi}stfi_1fpt_local_watch_only"
             create_watch_times, _ = read_data(file, bucket)
@@ -156,12 +157,13 @@ def plot_starting_file_graph(timestamp, bucket):
     plt.plot(x_values, data[1], label="V2", marker='o')
     plt.xlabel("Num Starting Files")
     plt.ylabel("Mean Watch Time (ms)")
-    plt.xticks(x_values)
+    plt.xticks(x_values, rotation=45)
+    plt.tight_layout()
     plt.grid(axis='x', which='major')
     plt.grid(axis='y')
     plt.legend()
     os.makedirs(timestamp, exist_ok=True)
-    plt.savefig(f"./{timestamp}/mean_watch_time_vs_starting_files.png")
+    plt.savefig(f"./{timestamp}/mean_watch_time_vs_starting_files.pdf")
     plt.clf()
 
 def plot_starting_file_graph2(timestamp, bucket):
@@ -183,7 +185,7 @@ def plot_starting_file_graph2(timestamp, bucket):
     plt.grid(axis='x', which='major')
     plt.grid(axis='y')
     os.makedirs(timestamp, exist_ok=True)
-    plt.savefig(f"./{timestamp}/mean_watch_time_vs_starting_files2.png")
+    plt.savefig(f"./{timestamp}/mean_watch_time_vs_starting_files2.pdf")
     plt.clf()
 
 def plot_wkrs_graph(timestamp, bucket):
@@ -207,7 +209,7 @@ def plot_wkrs_graph(timestamp, bucket):
         plt.grid(axis='y')
         plt.legend()
         os.makedirs(timestamp, exist_ok=True)
-        plt.savefig(f"./{timestamp}/mean_watch_time_vs_workers_{measure}.png")
+        plt.savefig(f"./{timestamp}/mean_watch_time_vs_workers_{measure}.pdf")
         plt.clf()
 
 def plot_fpt_graph(timestamp, bucket):
@@ -232,7 +234,7 @@ def plot_fpt_graph(timestamp, bucket):
         plt.grid(axis='y')
         plt.legend()
         os.makedirs(timestamp, exist_ok=True)
-        plt.savefig(f"./{timestamp}/mean_watch_time_vs_files_per_trial_{measure}.png")
+        plt.savefig(f"./{timestamp}/mean_watch_time_vs_files_per_trial_{measure}.pdf")
         plt.clf()
 
 def check_num_outliers(timestamp, bucket):
@@ -248,19 +250,19 @@ def check_num_outliers(timestamp, bucket):
             continue
         v1_create, _ = read_data(file, bucket)
         pct_outliers_v1.append((len(v1_create) - len(remove_outliers(v1_create))) / len(v1_create) * 100)
-        if pct_outliers_v1[-1] > 10:
+        if pct_outliers_v1[-1] > 5:
             print(file)
             print("Difference in mean: ", np.mean(v1_create) - np.mean(remove_outliers(v1_create)))
             plot_histogram(v1_create, bins=30, title="", xlabel="Delay (ms)", ylabel="Frequency", label="V1")
-            save_file(f"./{timestamp}/outlier_{file.split('/')[-1]}.png")
+            save_file(f"./{timestamp}/outlier_{file.split('/')[-1]}.pdf")
 
         v2_create, _ = read_data(file.replace("V1", "V2"), bucket)
         pct_outliers_v2.append((len(v2_create) - len(remove_outliers(v2_create))) / len(v2_create) * 100)
-        if pct_outliers_v2[-1] > 10:
+        if pct_outliers_v2[-1] > 5:
             print(file.replace("V1", "V2"))
             print("Difference in mean: ", np.mean(v2_create) - np.mean(remove_outliers(v2_create)))
             plot_histogram(v1_create, bins=30, title="", xlabel="Delay (ms)", ylabel="Frequency", label="V2")
-            save_file(f"./{timestamp}/outlier_{file.split('/')[-1]}.png")
+            save_file(f"./{timestamp}/outlier_{file.split('/')[-1]}.pdf")
     
     print("V1")
     print(pd.Series(pct_outliers_v1).describe())
@@ -269,7 +271,7 @@ def check_num_outliers(timestamp, bucket):
     print(pd.Series(pct_outliers_v2).describe())
 
 if __name__ == "__main__":
-    timestamp = "2025-05-15_04:14:03"
+    timestamp = "2025-05-15_13:46:12"
     session = boto3.Session(profile_name='sigmaos')
     s3_resource = session.resource('s3')
     bucket = s3_resource.Bucket('sigmaos-bucket-ryan')
